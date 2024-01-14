@@ -20,7 +20,7 @@ class _NewsWidgetState extends State<NewsWidget> {
 
   void fetchNews() async {
     //const url = 'http://192.168.100.98:8000/api/news';
-    const url = 'http://192.168.0.51:8000/api/news';
+    const url = 'http://192.168.100.123:8000/api/news';
     final uri = Uri.parse(url);
     final response = await http.get(uri);
     final body = response.body;

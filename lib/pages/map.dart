@@ -24,7 +24,8 @@ class _MapWidgetState extends State<MapWidget> {
 
   void fetchPoligonos() async {
     //const url = 'http://192.168.100.98:8000/api/map';
-    const url = 'http://192.168.0.51:8000/api/map';
+    //const url = 'http://192.168.0.51:8000/api/map';
+    const url = 'http://192.168.100.123:8000/api/map';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final body = response.body;
@@ -114,6 +115,7 @@ class _MapWidgetState extends State<MapWidget> {
                     color: Colors.blue.withOpacity(0.5),
                     borderColor: Colors.blue,
                     borderStrokeWidth: 2,
+                    isFilled: true,
                   );
                 } else {
                   return Polygon(
