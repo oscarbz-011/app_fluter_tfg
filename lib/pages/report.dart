@@ -30,7 +30,10 @@ class _ReportState extends State<Report> {
             children: [
               TextFormField(
                 controller: titleController,
-                
+                decoration: const InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(),
+                ),
                 
                 textCapitalization: TextCapitalization.none,
                 autofillHints: const [AutofillHints.email],
@@ -40,13 +43,48 @@ class _ReportState extends State<Report> {
               ),
               TextFormField(
                 controller: contentController,
-                
-                
+                decoration: const InputDecoration(
+                  labelText: 'Correo',
+                  border: OutlineInputBorder(),
+                ),
                 textCapitalization: TextCapitalization.none,
                 autofillHints: const [AutofillHints.email],
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 
+              ),
+              TextFormField(
+                controller: contentController,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.none,
+                autofillHints: const [AutofillHints.email],
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              TextFormField(
+                controller: contentController,
+                decoration: const InputDecoration(
+                  labelText: 'Imagen',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.none,
+                autofillHints: const [AutofillHints.email],
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              TextFormField(
+                controller: contentController,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.none,
+                autofillHints: const [AutofillHints.email],
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
               ),
               // TextFormField(
               //   controller: emailController,
