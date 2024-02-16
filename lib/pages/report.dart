@@ -86,16 +86,7 @@ class _ReportState extends State<Report> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
               ),
-              // TextFormField(
-              //   controller: emailController,
-                
-              //   autofocus: true,
-              //   textCapitalization: TextCapitalization.none,
-              //   autofillHints: const [AutofillHints.email],
-              //   keyboardType: TextInputType.emailAddress,
-              //   textInputAction: TextInputAction.next,
-                
-              // ),
+             
               ElevatedButton(
                 onPressed: (){},
                 child: Text('Enviar'),
