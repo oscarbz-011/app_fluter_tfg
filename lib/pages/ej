@@ -261,3 +261,70 @@ class _MapWidgetState extends State<MapWidget> {
 
   // ... Existing methods ...
 }
+
+
+
+//------------------------------------------------------------------------------------
+
+class _MarkerPageState extends State<MarkerPage> {
+
+  late MapLatLng _markerPosition;
+  late _CustomZoomPanBehavior _mapZoomPanBehavior;
+  late MapTileLayerController _controller;
+
+  @override
+  void initState() {
+    _controller = MapTileLayerController();
+    _mapZoomPanBehavior = _CustomZoomPanBehavior()..onTap = updateMarkerChange;
+    super.initState();
+  }
+
+  
+  void updateMarkerChange(Offset position) {
+    _markerPosition = _controller.pixelToLatLng(position);
+    if (_controller.markersCount > 0) {
+      _controller.clearMarkers();
+    }
+    _controller.insertMarker(0);
+  }
+
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Marker sample')),
+      body: SfMaps(
+        layers: [
+          MapTileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            zoomPanBehavior: _mapZoomPanBehavior,
+            controller: _controller,
+            markerBuilder: (BuildContext context, int index) {
+              return MapMarker(
+                latitude: _markerPosition.latitude,
+                longitude: _markerPosition.longitude,
+                child: Icon(Icons.add_location, color: Colors.red),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class _CustomZoomPanBehavior extends MapZoomPanBehavior {
+  late MapTapCallback onTap;
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent) {
+      onTap(event.localPosition);
+    }
+    super.handleEvent(event);
+  }
+}
+
+
+typedef MapTapCallback = void Function(Offset position);
