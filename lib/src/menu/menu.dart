@@ -1,7 +1,7 @@
-import 'package:app_flutter/pages/Report.dart';
-import 'package:app_flutter/pages/news.dart';
+import 'package:app_flutter/src/report/Report.dart';
+import 'package:app_flutter/src/news/news.dart';
 import 'package:flutter/material.dart';
-import 'package:app_flutter/pages/map.dart';
+import 'package:app_flutter/src/map/map.dart';
 
 class MenuView extends StatefulWidget {
   const MenuView({super.key});

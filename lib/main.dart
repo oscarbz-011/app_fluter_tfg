@@ -1,8 +1,8 @@
-import 'package:app_flutter/pages/Report.dart';
-import 'package:app_flutter/pages/news.dart';
-import 'package:app_flutter/pages/menu.dart';
+import 'package:app_flutter/src/report/Report.dart';
+import 'package:app_flutter/src/news/news.dart';
+import 'package:app_flutter/src/menu/menu.dart';
 import 'package:flutter/material.dart';
-import 'package:app_flutter/pages/map.dart';
+import 'package:app_flutter/src/map/map.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Chat',
+      title: 'Futter TFG',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 0, 39, 71)),
         useMaterial3: true,
