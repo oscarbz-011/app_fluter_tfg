@@ -93,7 +93,7 @@ class _MapWidgetState extends State<MapWidget> {
         }
         CustomPolygon polygon = CustomPolygon(
           points: points,
-          color: Color.fromARGB(
+          color: const Color.fromARGB(
               114, 33, 149, 243), // You can customize the color if needed
           strokeColor: Color.fromARGB(
               83, 33, 149, 243), // You can customize the stroke color if needed
@@ -150,8 +150,8 @@ class _MapWidgetState extends State<MapWidget> {
             layers: [
               MapTileLayer(
                 initialFocalLatLng: MapLatLng(
-                  currentLocation.latitude!,
-                  currentLocation.longitude!,
+                  currentLocation.latitude,
+                  currentLocation.longitude,
                 ),
                 initialZoomLevel: 15,
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
