@@ -16,12 +16,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'TrashTrack App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 39, 71)),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Bienvenido a TrashTrack App!'),
     );
   }
 }
@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Futter TFG',
+      title: 'TrashTrack App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 0, 39, 71)),
         useMaterial3: true,

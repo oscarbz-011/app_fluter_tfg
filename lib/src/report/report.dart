@@ -22,6 +22,7 @@ class _ReportState extends State<Report> {
   late LatLng _selectedLocation;
   late File? _image = null;
   int selectedCategory = 1;
+  String selectedZone = '';
   final formKey = GlobalKey<FormState>();
 
   late MapLatLng _markerPosition;
@@ -44,7 +45,7 @@ class _ReportState extends State<Report> {
 
   Future<void> _getImage() async {
     final pickedImage =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
+        await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedImage != null) {
       setState(() {
         _image = File(pickedImage.path);
@@ -60,37 +61,58 @@ class _ReportState extends State<Report> {
         _controller.clearMarkers();
         }
         _controller.insertMarker(0);
+
+        // Llamar a _selectLocation con la nueva posición
+        _selectLocation(LatLng(_markerPosition.latitude, _markerPosition.longitude));
     }
 
-    Future<void> _sendReport() async {
-        final url = Uri.parse('http://192.168.100.123:8000/api/reports');
-        final response = await http.post(
-        url,
-        body: jsonEncode({
-            'email': emailController.text,
-            'categories_id': selectedCategory,
-            'zone': zoneController.text,
-            'description': descriptionController.text,
-            'latitude': _selectedLocation.latitude,
-            'longitude': _selectedLocation.longitude,
-            // Añade aquí cualquier otro dato que necesites enviar
-        }),
-        headers: {'Content-Type': 'application/json'},
-        );
+  Future<void> _sendReport() async {
+    final url = Uri.parse('http://192.168.100.123:8000/api/reports');
 
-        if (response.statusCode == 200) {
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-              content: Text('Reporte enviado correctamente'),
-            ),
-          );
-            // Aquí puedes agregar cualquier lógica adicional que necesites
-        } else {
-        // La solicitud falló
-        throw Exception('Failed to send report');
-        }
+    // Construir la solicitud multipart/form-data
+    final request = http.MultipartRequest('POST', url);
+
+    // Agregar campos de texto
+    request.fields['email'] = emailController.text;
+    request.fields['categories_id'] = selectedCategory.toString();
+    request.fields['zone'] = zoneController.text;
+    request.fields['description'] = descriptionController.text;
+    request.fields['latitude'] = _selectedLocation.latitude.toString();
+    request.fields['longitude'] = _selectedLocation.longitude.toString();
+
+    // Agregar la imagen
+    if (_image != null) {
+      final file = await http.MultipartFile.fromPath('image', _image!.path);
+      request.files.add(file);
     }
+
+    // Imprimir los datos antes de enviar la solicitud
+    print('Datos enviados:');
+    print('Email: ${emailController.text}');
+    print('Categoría: $selectedCategory');
+    print('Zona: ${zoneController.text}');
+    print('Descripción: ${descriptionController.text}');
+    print('Latitud: ${_selectedLocation.latitude}');
+    print('Longitud: ${_selectedLocation.longitude}');
+    if (_image != null) {
+      print('Imagen: ${_image!.path}');
+    }
+
+    // Enviar la solicitud
+    final streamedResponse = await request.send();
+
+    // Manejar la respuesta
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Reporte enviado correctamente'),
+        ),
+      );
+    } else {
+      throw Exception('Failed to send report');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,6 +130,7 @@ class _ReportState extends State<Report> {
                 // Añade los campos del formulario
                 //Email
                  TextFormField(
+                  keyboardType: TextInputType.emailAddress,
                   controller: emailController,
                   decoration: const InputDecoration(
                     labelText: 'Email',
@@ -145,9 +168,67 @@ class _ReportState extends State<Report> {
                 ),
                 SizedBox(height: 10),
 
+                // //Zona
+                // DropdownButtonFormField<String>(
+                //   value: selectedZone,
+                //   onChanged: (value) {
+                //     setState(() {
+                //       selectedZone = value!;
+                //     });
+                //   },
+                //   decoration: const InputDecoration(
+                //     labelText: 'Zona',
+                //     border: OutlineInputBorder(),
+                //   ),
+                //   items: const [
+                //     DropdownMenuItem<String>(
+                //       value: 'San Pedro Etapas',
+                //       child: Text('San Pedro Etapas'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'San Pedro Etapa Curupayty',
+                //       child: Text('San Pedro Etapa Curupayty'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Mboi Kae',
+                //       child: Text('Mboi Kae'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Centro',
+                //       child: Text('Centro'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'San Isidro',
+                //       child: Text('San Isidro'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Santa Maria',
+                //       child: Text('Santa Maria'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Chaipe',
+                //       child: Text('Chaipe'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'San Antonio',
+                //       child: Text('San Antonio'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Santo Domingo',
+                //       child: Text('Santo Domingo'),
+                //     ),
+                //     DropdownMenuItem<String>(
+                //       value: 'Ita Paso',
+                //       child: Text('Ita Paso'),
+                //     ),
+                //   ],
+                // ),
+                // SizedBox(height: 10),
+
                 //Zona
                 TextFormField(
                   controller: zoneController,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'Zona',
                     border: OutlineInputBorder(),

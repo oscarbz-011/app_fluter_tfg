@@ -8,7 +8,7 @@ class Details extends StatelessWidget {
   final String title;
   final String description;
   final String image;
-  // final String date;
+  final String date;
   // final String source;
   // final String url;
 
@@ -16,7 +16,7 @@ class Details extends StatelessWidget {
     required this.title,
     required this.description,
     required this.image,
-    // required this.date,
+    required this.date,
     // required this.source,
     // required this.url,
   });
@@ -35,16 +35,19 @@ class Details extends StatelessWidget {
           ),
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text('Título: $title'),
-              Text('Contenido: $description'),
-              // Text('Date: $date'),
-              // Text('Source: $source'),
-              // Text('URL: $url'),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.network(image),
+                Text('$title', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text('$description', style: TextStyle(fontSize: 16)),
+                Text('Fecha: $date'),
+                // Text('Source: $source'),
+                // Text('URL: $url'),s
+              ],
+            ),
           ),
         ),
       ),
