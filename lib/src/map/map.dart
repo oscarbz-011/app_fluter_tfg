@@ -77,7 +77,6 @@ class _MapWidgetState extends State<MapWidget> {
     // Obtener la URL de la API desde el archivo .env
     String api_url = dotenv.get("API_URL", fallback: "");
 
-
     final response = await http.get(Uri.parse(api_url + 'api/map'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
