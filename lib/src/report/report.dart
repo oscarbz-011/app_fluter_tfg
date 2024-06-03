@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Report extends StatefulWidget {
   const Report({Key? key}) : super(key: key);
@@ -34,7 +35,18 @@ class _ReportState extends State<Report> {
     super.initState();
     _selectedLocation = LatLng(0, 0); // Latitud y longitud inicial
     _controller = MapTileLayerController();
-    _mapZoomPanBehavior = MapZoomPanBehavior(zoomLevel: 12);
+    _mapZoomPanBehavior = MapZoomPanBehavior(
+      zoomLevel: 12,
+      focalLatLng: MapLatLng(-27.332474952498472, -55.864316516887556),
+      showToolbar: true,
+      toolbarSettings: MapToolbarSettings(
+        position: MapToolbarPosition.topLeft,
+        //direction: Axis.vertical,
+        iconColor: Colors.blue,
+        itemBackgroundColor: Colors.transparent,
+        itemHoverColor: Colors.transparent,
+      ),
+    );
   }
 
   void _selectLocation(LatLng position) {
@@ -44,8 +56,12 @@ class _ReportState extends State<Report> {
   }
 
   Future<void> _getImage() async {
-    final pickedImage =
-        await ImagePicker().pickImage(source: ImageSource.camera);
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 75,
+      maxWidth: 960,
+      maxHeight: 1280,
+    );
     if (pickedImage != null) {
       setState(() {
         _image = File(pickedImage.path);
@@ -53,21 +69,27 @@ class _ReportState extends State<Report> {
     }
   }
 
-    void updateMarkerChange(Offset position) {
-        // We have converted the local point into latlng and inserted marker
-        // in that position.
-        _markerPosition = _controller.pixelToLatLng(position);
-        if (_controller.markersCount > 0) {
-        _controller.clearMarkers();
-        }
-        _controller.insertMarker(0);
-
-        // Llamar a _selectLocation con la nueva posición
-        _selectLocation(LatLng(_markerPosition.latitude, _markerPosition.longitude));
+  void updateMarkerChange(Offset position) {
+    // We have converted the local point into latlng and inserted marker
+    // in that position.
+    _markerPosition = _controller.pixelToLatLng(position);
+    if (_controller.markersCount > 0) {
+      _controller.clearMarkers();
     }
+    _controller.insertMarker(0);
+
+    // Llamar a _selectLocation con la nueva posición
+    _selectLocation(
+        LatLng(_markerPosition.latitude, _markerPosition.longitude));
+  }
 
   Future<void> _sendReport() async {
-    final url = Uri.parse('http://192.168.100.123:8000/api/reports');
+    try {
+
+    
+    // Obtener la URL de la API desde el archivo .env
+    String api_url = dotenv.get("API_URL", fallback: "");
+    final url = Uri.parse(api_url + 'api/reports');
 
     // Construir la solicitud multipart/form-data
     final request = http.MultipartRequest('POST', url);
@@ -109,8 +131,23 @@ class _ReportState extends State<Report> {
           content: Text('Reporte enviado correctamente'),
         ),
       );
+      // Limpiar los campos del formulario
+      emailController.clear();
+      zoneController.clear();
+      descriptionController.clear();
+      setState(() {
+        _image = null;
+      });
     } else {
-      throw Exception('Failed to send report');
+      throw Exception('Hubo un error al enviar el reporte');
+    }
+    } catch (e) {
+      print('Error al enviar el reporte: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al enviar el reporte: $e'),
+        ),
+      );
     }
   }
 
@@ -129,7 +166,7 @@ class _ReportState extends State<Report> {
               children: [
                 // Añade los campos del formulario
                 //Email
-                 TextFormField(
+                TextFormField(
                   keyboardType: TextInputType.emailAddress,
                   controller: emailController,
                   decoration: const InputDecoration(
@@ -245,12 +282,13 @@ class _ReportState extends State<Report> {
                   ),
                 ),
                 SizedBox(height: 10),
+
+                // Mapa
                 Container(
                   height: 300, // Ajusta la altura según sea necesario
                   child: GestureDetector(
                     onTapUp: (TapUpDetails details) {
                       updateMarkerChange(details.localPosition);
-                      
                     },
                     child: SfMaps(
                       layers: [

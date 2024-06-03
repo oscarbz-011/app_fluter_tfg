@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import 'package:location/location.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MapWidget extends StatefulWidget {
   const MapWidget({Key? key});
@@ -51,14 +53,7 @@ class _MapWidgetState extends State<MapWidget> {
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior(enableDoubleTapZooming: true);
     super.initState();
-    _currentLocation().then((locationData) {
-      if (locationData != null) {
-        setState(() {
-          currentLocation =
-              LatLng(locationData.latitude!, locationData.longitude!);
-        });
-      }
-    });
+
     // Iniciar el flujo de datos de polígonos
     _startPolygonStream();
   }
@@ -79,8 +74,11 @@ class _MapWidgetState extends State<MapWidget> {
   }
 
   void fetchPolygons() async {
-    const url = 'http://192.168.100.123:8000/api/map';
-    final response = await http.get(Uri.parse(url));
+    // Obtener la URL de la API desde el archivo .env
+    String api_url = dotenv.get("API_URL", fallback: "");
+
+
+    final response = await http.get(Uri.parse(api_url + 'api/map'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       List<CustomPolygon> polygons = [];
@@ -110,69 +108,69 @@ class _MapWidgetState extends State<MapWidget> {
     }
   }
 
-  MapController mapController = MapController();
-  LatLng currentLocation = LatLng(-27.332474952498472, -55.864316516887556);
-  bool showMarker = false;
-
-  Future<LocationData?> _currentLocation() async {
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
-
-    Location location = new Location();
-
-    serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        return null;
+  Future<LatLng> _getCurrentLocation() async {
+    LocationPermission permission;
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
       }
     }
-
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return null;
-      }
-    }
-    return await location.getLocation();
+    Position position = await Geolocator.getCurrentPosition();
+    return LatLng(position.latitude, position.longitude);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder<List<CustomPolygon>>(
-        stream: _polygonStreamController.stream,
-        initialData: _polygons,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<CustomPolygon>> snapshot) {
-          return SfMaps(
-            layers: [
-              MapTileLayer(
-                initialFocalLatLng: MapLatLng(
-                  currentLocation.latitude,
-                  currentLocation.longitude,
-                ),
-                initialZoomLevel: 15,
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                zoomPanBehavior: _zoomPanBehavior,
-                sublayers: [
-                  MapPolygonLayer(
-                    polygons: snapshot.data!
-                        .map((polygon) => MapPolygon(
-                              points: polygon.points,
-                              color: polygon.color,
-                              strokeColor: polygon.strokeColor,
-                              onTap: () {
-                                _showPolygonInfo(context, polygon);
-                              },
-                            ))
-                        .toSet(),
-                  ),
-                ],
-              ),
-            ],
-          );
+      body: FutureBuilder<LatLng>(
+        future: _getCurrentLocation(),
+        builder: (BuildContext context, AsyncSnapshot<LatLng> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Mientras se espera la ubicación actual, se puede mostrar un indicador de carga
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            // Manejar el caso de error si ocurre algún problema al obtener la ubicación
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            // Cuando se obtiene la ubicación actual, construir el mapa
+            return StreamBuilder<List<CustomPolygon>>(
+              stream: _polygonStreamController.stream,
+              initialData: _polygons,
+              builder: (BuildContext context,
+                  AsyncSnapshot<List<CustomPolygon>> polygonSnapshot) {
+                return SfMaps(
+                  layers: [
+                    MapTileLayer(
+                      initialFocalLatLng: MapLatLng(
+                        snapshot.data!.latitude,
+                        snapshot.data!.longitude,
+                      ),
+                      initialZoomLevel: 15,
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      zoomPanBehavior: _zoomPanBehavior,
+                      sublayers: [
+                        MapPolygonLayer(
+                          polygons: polygonSnapshot.data!
+                              .map((polygon) => MapPolygon(
+                                    points: polygon.points,
+                                    color: polygon.color,
+                                    strokeColor: polygon.strokeColor,
+                                    onTap: () {
+                                      _showPolygonInfo(context, polygon);
+                                    },
+                                  ))
+                              .toSet(),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            );
+          }
         },
       ),
       floatingActionButton: Stack(
@@ -185,7 +183,7 @@ class _MapWidgetState extends State<MapWidget> {
                 borderRadius: BorderRadius.circular(100.0),
               ),
               onPressed: () {
-                _currentLocation();
+                _getCurrentLocation();
               },
               child: Icon(Icons.my_location),
             ),

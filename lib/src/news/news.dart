@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:app_flutter/src/news_details/details.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NewsWidget extends StatefulWidget {
   const NewsWidget({Key? key}) : super(key: key);
@@ -29,8 +30,10 @@ class _NewsWidgetState extends State<NewsWidget> {
       await Future.delayed(Duration(seconds: 10));
 
       try {
-        String api_url = "http://192.168.100.123:8000/api/";
-        final response = await http.get(Uri.parse(api_url + 'news'));
+        // Obtener la URL de la API de un archivo .env
+        String api_url = dotenv.get("API_URL", fallback: "");
+
+        final response = await http.get(Uri.parse(api_url + 'api/news'));
         final body = response.body;
         final json = jsonDecode(body);
         _newsStreamController.add(json); // Emitir los datos al Stream
