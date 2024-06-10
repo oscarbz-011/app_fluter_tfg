@@ -25,6 +25,7 @@ class CustomPolygon {
   final String zone;
   final String days;
   final String time;
+  final int status;
 
   CustomPolygon({
     required this.points,
@@ -33,6 +34,7 @@ class CustomPolygon {
     required this.zone,
     required this.days,
     required this.time,
+    required this.status,
   });
 }
 
@@ -88,17 +90,29 @@ class _MapWidgetState extends State<MapWidget> {
         for (var coordinate in coordinates) {
           points.add(MapLatLng(coordinate[1], coordinate[0]));
         }
-        CustomPolygon polygon = CustomPolygon(
-          points: points,
-          color: const Color.fromARGB(
-              114, 33, 149, 243), // You can customize the color if needed
-          strokeColor: Color.fromARGB(
-              83, 33, 149, 243), // You can customize the stroke color if needed
-          zone: item['zone'],
-          days: item['days'],
-          time: item['time'],
-        );
-        polygons.add(polygon);
+        if (item['status'] == 1) {
+          CustomPolygon polygon = CustomPolygon(
+            points: points,
+            color: const Color.fromARGB(114, 33, 149, 243),
+            strokeColor: Color.fromARGB(83, 33, 149, 243),
+            zone: item['zone'],
+            days: item['days'],
+            time: item['time'],
+            status: item['status'],
+          );
+          polygons.add(polygon);
+        } else {
+          CustomPolygon polygon = CustomPolygon(
+            points: points,
+            color: Color.fromARGB(113, 220, 30, 30),
+            strokeColor: Color.fromARGB(113, 220, 30, 30),
+            zone: item['zone'],
+            days: item['days'],
+            time: item['time'],
+            status: item['status'],
+          );
+          polygons.add(polygon);
+        }
       }
       // Agregar polígonos al flujo de datos
       _polygonStreamController.sink.add(polygons);
@@ -199,7 +213,7 @@ class _MapWidgetState extends State<MapWidget> {
       builder: (BuildContext context) {
         return SizedBox(
           //padding: EdgeInsets.all(16.0),
-          height: 200,
+          height: 400,
           child: Center(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,6 +230,7 @@ class _MapWidgetState extends State<MapWidget> {
                 Text('Zona: ${polygon.zone}'),
                 Text('Dias: ${polygon.days}'),
                 Text('Horario: ${polygon.time}'),
+                Text('Estado: ${polygon.status == 1 ? 'Activo' : 'Suspendido'}'),
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 //import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 //import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -169,9 +170,11 @@ class _ReportState extends State<Report> {
                 TextFormField(
                   keyboardType: TextInputType.emailAddress,
                   controller: emailController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
                   ),
                 ),
                 SizedBox(height: 10),
@@ -184,9 +187,11 @@ class _ReportState extends State<Report> {
                       selectedCategory = value!;
                     });
                   },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Categoría',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
                   ),
                   items: const [
                     DropdownMenuItem<int>(
@@ -266,9 +271,11 @@ class _ReportState extends State<Report> {
                 TextFormField(
                   controller: zoneController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Zona',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
                   ),
                 ),
                 SizedBox(height: 10),
@@ -276,46 +283,51 @@ class _ReportState extends State<Report> {
                 //Descripción
                 TextFormField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Descripción',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 80.0, horizontal: 16.0),
                   ),
                 ),
                 SizedBox(height: 10),
 
-                // Mapa
-                Container(
-                  height: 300, // Ajusta la altura según sea necesario
-                  child: GestureDetector(
-                    onTapUp: (TapUpDetails details) {
-                      updateMarkerChange(details.localPosition);
-                    },
-                    child: SfMaps(
-                      layers: [
-                        MapTileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          zoomPanBehavior: _mapZoomPanBehavior,
-                          initialFocalLatLng: MapLatLng(
-                              -27.332474952498472, -55.864316516887556),
-                          controller: _controller,
-                          markerBuilder: (BuildContext context, int index) {
-                            return MapMarker(
-                              latitude: _markerPosition.latitude,
-                              longitude: _markerPosition.longitude,
-                              child: Icon(Icons.location_on, color: Colors.red),
-                            );
-                          },
-                        ),
-                      ],
+                
+                Center(
+                  child:Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    
+                    ElevatedButton(
+                        onPressed: () {
+                          _showMap(context);
+                        },
+                        child: const Row(
+                          children: [
+                            Icon(Icons.location_on),
+                            Text('Ubicación'),
+                          ],
+                        )
                     ),
-                  ),
+                    ElevatedButton(
+                        onPressed: _getImage,
+
+                        child: const Row(
+                          children: [
+                            Icon(Icons.camera_alt),
+                            Text('Imagen'),
+                          ],
+                        ),
+                    ),
+                    
+
+                  ],
                 ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _getImage,
-                  child: Text('Seleccionar Imagen'),
                 ),
+                
                 SizedBox(height: 10),
                 if (_image != null) Image.file(_image!),
                 SizedBox(height: 10),
@@ -327,6 +339,9 @@ class _ReportState extends State<Report> {
                       await _sendReport();
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(MediaQuery.of(context).size.width, 50),
+                  ),
                   child: Text('Enviar'),
                 ),
               ],
@@ -334,6 +349,56 @@ class _ReportState extends State<Report> {
           ),
         ),
       ),
+    );
+  }
+
+
+ // Función para mostrar desplegar el mapa al hacer clic
+  void _showMap(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SizedBox(
+          //padding: EdgeInsets.all(16.0),
+          height: 400,
+          child: Column(
+            children: [
+              Container(
+                      height: 300, // Ajusta la altura según sea necesario
+                      child: GestureDetector(
+                        onTapUp: (TapUpDetails details) {
+                          updateMarkerChange(details.localPosition);
+                        },
+                        child: SfMaps(
+                          layers: [
+                            MapTileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              zoomPanBehavior: _mapZoomPanBehavior,
+                              initialFocalLatLng: MapLatLng(
+                                  -27.332474952498472, -55.864316516887556),
+                              controller: _controller,
+                              markerBuilder: (BuildContext context, int index) {
+                                return MapMarker(
+                                  latitude: _markerPosition.latitude,
+                                  longitude: _markerPosition.longitude,
+                                  child: Icon(Icons.location_on, color: Colors.red),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    IconButton(onPressed: (){
+                      Navigator.pop(context);
+                    }, icon: Icon(Icons.check)),
+                    
+              
+            ],
+          ),
+        );
+      },
     );
   }
 }
