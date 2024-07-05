@@ -61,7 +61,12 @@ class _NewsWidgetState extends State<NewsWidget> {
             return Center(
               child: Text('Error: ${snapshot.error}'),
             );
-          } else {
+          } else if (!snapshot.hasData) {
+            return Center(
+              child: Text('No hay noticias disponibles'),
+            );
+          } 
+          else {
             List<dynamic> news = snapshot.data ?? [];
             return ListView.builder(
               reverse: true,
@@ -116,7 +121,7 @@ class _NewsWidgetState extends State<NewsWidget> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                    /*"${news[index]['created_by']} · */ "${news[index]['created_at']}",
+                    "${news[index]['created_at']}",
                     style: Theme.of(context).textTheme.bodyText1),
                 const SizedBox(height: 8),
                 Row(

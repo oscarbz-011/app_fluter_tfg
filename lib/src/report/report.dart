@@ -1,11 +1,13 @@
 //import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 //import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
+import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -27,7 +29,7 @@ class _ReportState extends State<Report> {
   String selectedZone = '';
   final formKey = GlobalKey<FormState>();
 
-  late MapLatLng _markerPosition;
+  late MapLatLng _markerPosition = MapLatLng(-27.332474952498472, -55.864316516887556);
   late MapZoomPanBehavior _mapZoomPanBehavior;
   late MapTileLayerController _controller;
 
@@ -70,6 +72,33 @@ class _ReportState extends State<Report> {
     }
   }
 
+  // Función para obtener la ubicación actual
+  Future<LocationData?> _currentLocation() async {
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
+
+    Location location = new Location();
+
+    serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
+        return null;
+      }
+    }
+
+    permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
+        return null;
+      }
+    }
+    return await location.getLocation();
+  }
+
+
+  // Función para actualizar la posición del marcador
   void updateMarkerChange(Offset position) {
     // We have converted the local point into latlng and inserted marker
     // in that position.
@@ -289,12 +318,56 @@ class _ReportState extends State<Report> {
                       borderRadius: BorderRadius.circular(16.0),
                     ),
                     contentPadding:
-                        EdgeInsets.symmetric(vertical: 80.0, horizontal: 16.0),
+                        EdgeInsets.symmetric(vertical: 80.0, horizontal: 14.0),
                   ),
                 ),
                 SizedBox(height: 10),
-
-                
+                if (_selectedLocation.latitude != 0 && _selectedLocation.longitude != 0)
+                  Container(
+                    padding: const EdgeInsets.all(10.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on, color: Colors.red),
+                        Text('Ubicación seleccionada'),
+                        SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+                SizedBox(height: 10),
+                if (_image != null)
+                  Container(
+                    padding: const EdgeInsets.all(10.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        
+                        Image.file(
+                          _image!,
+                          height: 20,
+                          width: 40,
+                        ),
+                        Text('Imagen seleccionada'),
+                        SizedBox(height: 10),
+                        
+                      ],
+                    ),
+                  ),
+                SizedBox(height: 10),
                 Center(
                   child:Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -329,8 +402,6 @@ class _ReportState extends State<Report> {
                 ),
                 
                 SizedBox(height: 10),
-                if (_image != null) Image.file(_image!),
-                SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () async {
                     // Primero, verifica si el formulario es válido
@@ -360,11 +431,13 @@ class _ReportState extends State<Report> {
       builder: (BuildContext context) {
         return SizedBox(
           //padding: EdgeInsets.all(16.0),
-          height: 400,
+          height: 360,
           child: Column(
             children: [
+              SizedBox(height: 30),
               Container(
-                      height: 300, // Ajusta la altura según sea necesario
+                      height: 260, 
+                      width: MediaQuery.of(context).size.width,
                       child: GestureDetector(
                         onTapUp: (TapUpDetails details) {
                           updateMarkerChange(details.localPosition);
@@ -375,8 +448,9 @@ class _ReportState extends State<Report> {
                               urlTemplate:
                                   'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                               zoomPanBehavior: _mapZoomPanBehavior,
+                              initialZoomLevel: 15,
                               initialFocalLatLng: MapLatLng(
-                                  -27.332474952498472, -55.864316516887556),
+                                  _selectedLocation.latitude, _selectedLocation.longitude),
                               controller: _controller,
                               markerBuilder: (BuildContext context, int index) {
                                 return MapMarker(
@@ -390,9 +464,16 @@ class _ReportState extends State<Report> {
                         ),
                       ),
                     ),
-                    IconButton(onPressed: (){
+                    SizedBox(height: 10),
+                    ElevatedButton(onPressed: (){
                       Navigator.pop(context);
-                    }, icon: Icon(Icons.check)),
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(100, 39, 34, 43),
+                      minimumSize: Size(MediaQuery.of(context).size.width, 50),
+                    ), 
+                    child: Icon(Icons.check, color: Colors.white,)
+                    ),
                     
               
             ],

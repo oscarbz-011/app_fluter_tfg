@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 //import 'package:app_flutter/src/report/Report.dart';
 
 
@@ -23,6 +24,7 @@ class Details extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       //title: 'Material App',
@@ -36,17 +38,24 @@ class Details extends StatelessWidget {
         ),
         body: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Image.network(image),
-                Text('$title', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text('$description', style: TextStyle(fontSize: 16)),
-                Text('Fecha: $date'),
-                // Text('Source: $source'),
-                // Text('URL: $url'),s
-              ],
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  
+                  Image.network(image),
+                  Text('$title', textAlign: TextAlign.justify, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 14,),
+                  Text('$description',textAlign: TextAlign.justify, style: TextStyle(fontSize: 16,
+                  )),
+                  SizedBox(height: 14,),
+                  Text('Fecha: $date'),
+                  // Text('Source: $source'),
+                  // Text('URL: $url'),s
+                ],
+              ),
             ),
           ),
         ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+//import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
@@ -94,7 +95,7 @@ class _MapWidgetState extends State<MapWidget> {
           CustomPolygon polygon = CustomPolygon(
             points: points,
             color: const Color.fromARGB(114, 33, 149, 243),
-            strokeColor: Color.fromARGB(83, 33, 149, 243),
+            strokeColor: Color.fromARGB(208, 5, 55, 95),
             zone: item['zone'],
             days: item['days'],
             time: item['time'],
@@ -105,7 +106,7 @@ class _MapWidgetState extends State<MapWidget> {
           CustomPolygon polygon = CustomPolygon(
             points: points,
             color: Color.fromARGB(113, 220, 30, 30),
-            strokeColor: Color.fromARGB(113, 220, 30, 30),
+            strokeColor: Color.fromARGB(205, 116, 17, 17),
             zone: item['zone'],
             days: item['days'],
             time: item['time'],
@@ -121,32 +122,58 @@ class _MapWidgetState extends State<MapWidget> {
     }
   }
 
-  Future<LatLng> _getCurrentLocation() async {
-    LocationPermission permission;
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
+  // Future<LatLng> _getCurrentLocation() async {
+  //   LocationPermission permission;
+  //   permission = await Geolocator.checkPermission();
+  //   if (permission == LocationPermission.denied) {
+  //     permission = await Geolocator.requestPermission();
+  //     if (permission == LocationPermission.denied) {
+  //       throw Exception('Location permissions are denied');
+  //     }
+  //   }
+  //   Position position = await Geolocator.getCurrentPosition();
+  //   return LatLng(position.latitude, position.longitude);
+  // }
+
+  Future<LocationData?> _currentLocation() async {
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
+
+    Location location = new Location();
+
+    serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
+        return null;
       }
     }
-    Position position = await Geolocator.getCurrentPosition();
-    return LatLng(position.latitude, position.longitude);
+
+    permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
+        return null;
+      }
+    }
+    return await location.getLocation();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<LatLng>(
-        future: _getCurrentLocation(),
-        builder: (BuildContext context, AsyncSnapshot<LatLng> snapshot) {
+      body: FutureBuilder<LocationData?>(
+        future: _currentLocation(),
+        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Mientras se espera la ubicación actual, se puede mostrar un indicador de carga
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             // Manejar el caso de error si ocurre algún problema al obtener la ubicación
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
+          } else if (snapshot.hasData) {
+            final LocationData currentLocation = snapshot.data;
+
             // Cuando se obtiene la ubicación actual, construir el mapa
             return StreamBuilder<List<CustomPolygon>>(
               stream: _polygonStreamController.stream,
@@ -157,8 +184,8 @@ class _MapWidgetState extends State<MapWidget> {
                   layers: [
                     MapTileLayer(
                       initialFocalLatLng: MapLatLng(
-                        snapshot.data!.latitude,
-                        snapshot.data!.longitude,
+                        currentLocation.latitude!,
+                        currentLocation.longitude!,
                       ),
                       initialZoomLevel: 15,
                       urlTemplate:
@@ -178,11 +205,21 @@ class _MapWidgetState extends State<MapWidget> {
                               .toSet(),
                         ),
                       ],
+                      markerBuilder: (BuildContext context, int index) {
+                        return MapMarker(
+                          latitude: currentLocation.latitude!,
+                          longitude: currentLocation.longitude!,
+                          child: Icon(Icons.location_on, color: Colors.red),
+                        );
+                      },
                     ),
                   ],
                 );
               },
             );
+          } else {
+            return Center(
+                child: Text('No se pudo obtener la ubicación actual'));
           }
         },
       ),
@@ -195,8 +232,9 @@ class _MapWidgetState extends State<MapWidget> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100.0),
               ),
+              backgroundColor: Color.fromARGB(255, 39, 34, 43),
               onPressed: () {
-                _getCurrentLocation();
+                _currentLocation();
               },
               child: Icon(Icons.my_location),
             ),
@@ -214,24 +252,42 @@ class _MapWidgetState extends State<MapWidget> {
         return SizedBox(
           //padding: EdgeInsets.all(16.0),
           height: 400,
-          child: Center(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Itinerario del servicio',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          child: Container(
+            child: Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Itinerario del servicio',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(height: 10),
-                Text('Zona: ${polygon.zone}'),
-                Text('Dias: ${polygon.days}'),
-                Text('Horario: ${polygon.time}'),
-                Text('Estado: ${polygon.status == 1 ? 'Activo' : 'Suspendido'}'),
-              ],
+                  SizedBox(height: 10),
+                  Text('Zona: ${polygon.zone}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                      )),
+                  SizedBox(height: 10),
+                  Text('Dias: ${polygon.days}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                      )),
+                  SizedBox(height: 10),
+                  Text('Horario: ${polygon.time}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                      )),
+                  SizedBox(height: 10),
+                  Text(
+                      'Estado: ${polygon.status == 1 ? 'Activo' : 'Suspendido'}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                      )),
+                ],
+              ),
             ),
           ),
         );
