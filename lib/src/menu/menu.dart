@@ -35,17 +35,17 @@ class _MenuViewState extends State<MenuView> {
             currentIndex = index;
           });
         },
-        destinations: [
+        destinations: const [
         NavigationDestination(
-          icon: const Icon(Icons.map),
+          icon: Icon(Icons.map),
           label: 'Mapa',
         ),
         NavigationDestination(
-          icon: const Icon(Icons.article),
+          icon: Icon(Icons.article),
           label: 'Noticias',
         ),
         NavigationDestination(
-          icon: const Icon(Icons.report),
+          icon: Icon(Icons.report),
           label: 'Reportes',
         ),
       ]),

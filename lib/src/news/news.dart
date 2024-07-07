@@ -27,19 +27,19 @@ class _NewsWidgetState extends State<NewsWidget> {
   void fetchNews() async {
     // Mantén un bucle infinito para actualizar las noticias continuamente
     while (true) {
-      await Future.delayed(Duration(seconds: 10));
+      await Future.delayed(const Duration(seconds: 5));
 
       try {
         // Obtener la URL de la API de un archivo .env
-        String api_url = dotenv.get("API_URL", fallback: "");
+        String apiUrl = dotenv.get("API_URL", fallback: "");
 
-        final response = await http.get(Uri.parse(api_url + 'api/news'));
+        final response = await http.get(Uri.parse('${apiUrl}api/news'));
         final body = response.body;
         final json = jsonDecode(body);
         _newsStreamController.add(json); // Emitir los datos al Stream
       } catch (e) {
         // Manejar cualquier error que ocurra al buscar las noticias
-        print('Error al obtener noticias: $e');
+        //print('Error al obtener noticias: $e');
       }
     }
   }
@@ -54,15 +54,15 @@ class _NewsWidgetState extends State<NewsWidget> {
         stream: newsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(),
             );
           } else if (snapshot.hasError) {
             return Center(
               child: Text('Error: ${snapshot.error}'),
             );
-          } else if (!snapshot.hasData) {
-            return Center(
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
               child: Text('No hay noticias disponibles'),
             );
           } 
@@ -96,7 +96,7 @@ class _NewsWidgetState extends State<NewsWidget> {
             ),
           ),
         );
-        print(news[index]);
+        //print(news[index]);
       },
       child: Container(
         // Tarjeta de noticias
@@ -122,7 +122,7 @@ class _NewsWidgetState extends State<NewsWidget> {
                 const SizedBox(height: 8),
                 Text(
                     "${news[index]['created_at']}",
-                    style: Theme.of(context).textTheme.bodyText1),
+                    style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -167,7 +167,7 @@ class _NewsWidgetState extends State<NewsWidget> {
 }
 
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: NewsWidget(),
   ));
 }

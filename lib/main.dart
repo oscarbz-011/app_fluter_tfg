@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'TrashTrack App',
       theme: ThemeData(
         colorScheme:
-            ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 0, 39, 71)),
+            ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 0, 39, 71)),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Bienvenido a TrashTrack App!'),

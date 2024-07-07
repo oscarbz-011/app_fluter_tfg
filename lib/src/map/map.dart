@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:syncfusion_flutter_maps/maps.dart';
@@ -11,7 +8,7 @@ import 'package:location/location.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MapWidget extends StatefulWidget {
-  const MapWidget({Key? key});
+  const MapWidget({Key? key}) : super(key: key);
 
   @override
   _MapWidgetState createState() => _MapWidgetState();
@@ -39,16 +36,16 @@ class CustomPolygon {
 }
 
 class _MapWidgetState extends State<MapWidget> {
-  TapGestureRecognizer _tapGestureRecognizer = TapGestureRecognizer();
+  final TapGestureRecognizer _tapGestureRecognizer = TapGestureRecognizer();
 
   List<dynamic> geojson = [];
 
   // Variables a usar con syncfusion_flutter_maps
   late MapZoomPanBehavior _zoomPanBehavior;
-  List<CustomPolygon> _polygons = [];
+  final List<CustomPolygon> _polygons = [];
 
   // Controlador del flujo de datos de polígonos
-  StreamController<List<CustomPolygon>> _polygonStreamController =
+  final StreamController<List<CustomPolygon>> _polygonStreamController =
       StreamController<List<CustomPolygon>>();
 
   // Variable para almacenar la ubicación actual del dispositivo
@@ -58,10 +55,16 @@ class _MapWidgetState extends State<MapWidget> {
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior(enableDoubleTapZooming: true);
     super.initState();
-    // Obtener la ubicación actual al iniciar
-    _getCurrentLocation();
     // Iniciar el flujo de datos de polígonos
     _startPolygonStream();
+
+    // Obtener la ubicación actual del dispositivo al iniciar el widget
+    _getCurrentLocation().then((location) {
+      setState(() {
+        _currentLocation = location;
+        _moveToCurrentLocation();
+      });
+    });
   }
 
   @override
@@ -73,17 +76,17 @@ class _MapWidgetState extends State<MapWidget> {
 
   // Inicia el flujo de datos de polígonos
   void _startPolygonStream() {
-    Timer.periodic(Duration(seconds: 10), (timer) async {
-      // Actualizar polígonos cada 10 segundos
+    Timer.periodic(const Duration(seconds: 3), (timer) async {
+      // Actualizar polígonos cada 3 segundos
       fetchPolygons();
     });
   }
 
   void fetchPolygons() async {
     // Obtener la URL de la API desde el archivo .env
-    String api_url = dotenv.get("API_URL", fallback: "");
+    String apiUrl = dotenv.get("API_URL", fallback: "");
 
-    final response = await http.get(Uri.parse(api_url + 'api/map'));
+    final response = await http.get(Uri.parse('${apiUrl}api/map'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       List<CustomPolygon> polygons = [];
@@ -98,7 +101,7 @@ class _MapWidgetState extends State<MapWidget> {
           CustomPolygon polygon = CustomPolygon(
             points: points,
             color: const Color.fromARGB(114, 33, 149, 243),
-            strokeColor: Color.fromARGB(208, 5, 55, 95),
+            strokeColor: const Color.fromARGB(208, 5, 55, 95),
             zone: item['zone'],
             days: item['days'],
             time: item['time'],
@@ -108,8 +111,8 @@ class _MapWidgetState extends State<MapWidget> {
         } else {
           CustomPolygon polygon = CustomPolygon(
             points: points,
-            color: Color.fromARGB(113, 220, 30, 30),
-            strokeColor: Color.fromARGB(205, 116, 17, 17),
+            color: const Color.fromARGB(113, 220, 30, 30),
+            strokeColor: const Color.fromARGB(205, 116, 17, 17),
             zone: item['zone'],
             days: item['days'],
             time: item['time'],
@@ -125,29 +128,28 @@ class _MapWidgetState extends State<MapWidget> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    Location location = new Location();
+  Future<LocationData?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
 
-    bool serviceEnabled = await location.serviceEnabled();
+    Location location = Location();
+
+    serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
       if (!serviceEnabled) {
-        return;
+        return null;
       }
     }
 
-    PermissionStatus permissionGranted = await location.hasPermission();
+    permissionGranted = await location.hasPermission();
     if (permissionGranted == PermissionStatus.denied) {
       permissionGranted = await location.requestPermission();
       if (permissionGranted != PermissionStatus.granted) {
-        return;
+        return null;
       }
     }
-
-    LocationData locationData = await location.getLocation();
-    setState(() {
-      _currentLocation = locationData;
-    });
+    return await location.getLocation();
   }
 
   void _moveToCurrentLocation() {
@@ -163,9 +165,21 @@ class _MapWidgetState extends State<MapWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _currentLocation == null
-          ? Center(child: CircularProgressIndicator())
-          : StreamBuilder<List<CustomPolygon>>(
+      body: FutureBuilder<LocationData?>(
+        future: _getCurrentLocation(),
+        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Mientras se espera la ubicación actual, se puede mostrar un indicador de carga
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            // Manejar el caso de error si ocurre algún problema al obtener la ubicación
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            _currentLocation = snapshot.data;
+            _moveToCurrentLocation();
+
+            // Cuando se obtiene la ubicación actual, construir el mapa
+            return StreamBuilder<List<CustomPolygon>>(
               stream: _polygonStreamController.stream,
               initialData: _polygons,
               builder: (BuildContext context,
@@ -199,17 +213,42 @@ class _MapWidgetState extends State<MapWidget> {
                         return MapMarker(
                           latitude: _currentLocation!.latitude!,
                           longitude: _currentLocation!.longitude!,
-                          child: Icon(Icons.location_on, color: Colors.red),
+                          child:
+                              const Icon(Icons.location_on, color: Colors.red),
                         );
                       },
+                      initialMarkersCount: 1, // Solo necesitamos un marcador
                     ),
                   ],
                 );
               },
+            );
+          } else {
+            return const Center(
+                child: Text('No se pudo obtener la ubicación actual'));
+          }
+        },
+      ),
+      floatingActionButton: Stack(
+        children: [
+          Positioned(
+            bottom: 80.0,
+            right: 2.0,
+            child: FloatingActionButton(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100.0),
+              ),
+              backgroundColor: const Color.fromARGB(255, 39, 34, 43),
+              onPressed: () async {
+                _currentLocation = await _getCurrentLocation();
+                setState(() {
+                  _moveToCurrentLocation();
+                });
+              },
+              child: const Icon(Icons.my_location),
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _moveToCurrentLocation,
-        child: Icon(Icons.my_location),
+          ),
+        ],
       ),
     );
   }
@@ -221,42 +260,39 @@ class _MapWidgetState extends State<MapWidget> {
       builder: (BuildContext context) {
         return SizedBox(
           height: 400,
-          child: Container(
-            child: Center(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Itinerario del servicio',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Itinerario del servicio',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(height: 10),
-                  Text('Zona: ${polygon.zone}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                      )),
-                  SizedBox(height: 10),
-                  Text('Dias: ${polygon.days}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                      )),
-                  SizedBox(height: 10),
-                  Text('Horario: ${polygon.time}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                      )),
-                  SizedBox(height: 10),
-                  Text(
-                      'Estado: ${polygon.status == 1 ? 'Activo' : 'Suspendido'}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                      )),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                Text('Zona: ${polygon.zone}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    )),
+                const SizedBox(height: 10),
+                Text('Dias: ${polygon.days}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    )),
+                const SizedBox(height: 10),
+                Text('Horario: ${polygon.time}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    )),
+                const SizedBox(height: 10),
+                Text('Estado: ${polygon.status == 1 ? 'Activo' : 'Suspendido'}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    )),
+              ],
             ),
           ),
         );

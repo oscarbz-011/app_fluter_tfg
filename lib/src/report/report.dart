@@ -1,15 +1,12 @@
-//import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
-//import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:app_flutter/Models/category_values.dart';
 
 class Report extends StatefulWidget {
   const Report({Key? key}) : super(key: key);
@@ -29,20 +26,20 @@ class _ReportState extends State<Report> {
   String selectedZone = '';
   final formKey = GlobalKey<FormState>();
 
-  late MapLatLng _markerPosition = MapLatLng(-27.332474952498472, -55.864316516887556);
+  late MapLatLng _markerPosition = const MapLatLng(-27.332474952498472, -55.864316516887556);
   late MapZoomPanBehavior _mapZoomPanBehavior;
   late MapTileLayerController _controller;
 
   @override
   void initState() {
     super.initState();
-    _selectedLocation = LatLng(0, 0); // Latitud y longitud inicial
+    _selectedLocation = const LatLng(0, 0); // Latitud y longitud inicial
     _controller = MapTileLayerController();
     _mapZoomPanBehavior = MapZoomPanBehavior(
       zoomLevel: 12,
-      focalLatLng: MapLatLng(-27.332474952498472, -55.864316516887556),
+      focalLatLng: const MapLatLng(-27.332474952498472, -55.864316516887556),
       showToolbar: true,
-      toolbarSettings: MapToolbarSettings(
+      toolbarSettings: const MapToolbarSettings(
         position: MapToolbarPosition.topLeft,
         //direction: Axis.vertical,
         iconColor: Colors.blue,
@@ -77,7 +74,7 @@ class _ReportState extends State<Report> {
     bool serviceEnabled;
     PermissionStatus permissionGranted;
 
-    Location location = new Location();
+    Location location = Location();
 
     serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
@@ -118,8 +115,8 @@ class _ReportState extends State<Report> {
 
     
     // Obtener la URL de la API desde el archivo .env
-    String api_url = dotenv.get("API_URL", fallback: "");
-    final url = Uri.parse(api_url + 'api/reports');
+    String apiUrl = dotenv.get("API_URL", fallback: "");
+    final url = Uri.parse('${apiUrl}api/reports');
 
     // Construir la solicitud multipart/form-data
     final request = http.MultipartRequest('POST', url);
@@ -139,16 +136,16 @@ class _ReportState extends State<Report> {
     }
 
     // Imprimir los datos antes de enviar la solicitud
-    print('Datos enviados:');
-    print('Email: ${emailController.text}');
-    print('Categoría: $selectedCategory');
-    print('Zona: ${zoneController.text}');
-    print('Descripción: ${descriptionController.text}');
-    print('Latitud: ${_selectedLocation.latitude}');
-    print('Longitud: ${_selectedLocation.longitude}');
-    if (_image != null) {
-      print('Imagen: ${_image!.path}');
-    }
+    // print('Datos enviados:');
+    // print('Email: ${emailController.text}');
+    // print('Categoría: $selectedCategory');
+    // print('Zona: ${zoneController.text}');
+    // print('Descripción: ${descriptionController.text}');
+    // print('Latitud: ${_selectedLocation.latitude}');
+    // print('Longitud: ${_selectedLocation.longitude}');
+    // if (_image != null) {
+    //   print('Imagen: ${_image!.path}');
+    // }
 
     // Enviar la solicitud
     final streamedResponse = await request.send();
@@ -157,7 +154,7 @@ class _ReportState extends State<Report> {
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Reporte enviado correctamente'),
         ),
       );
@@ -172,7 +169,7 @@ class _ReportState extends State<Report> {
       throw Exception('Hubo un error al enviar el reporte');
     }
     } catch (e) {
-      print('Error al enviar el reporte: $e');
+      //print('Error al enviar el reporte: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al enviar el reporte: $e'),
@@ -206,9 +203,8 @@ class _ReportState extends State<Report> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-                //Categoria
                 DropdownButtonFormField<int>(
                   value: selectedCategory,
                   onChanged: (value) {
@@ -222,80 +218,12 @@ class _ReportState extends State<Report> {
                       borderRadius: BorderRadius.circular(16.0),
                     ),
                   ),
-                  items: const [
-                    DropdownMenuItem<int>(
-                      value: 1,
-                      child: Text('Servicio de Recolección'),
-                    ),
-                    DropdownMenuItem<int>(
-                      value: 2,
-                      child: Text('Ambiental'),
-                    ),
-                    DropdownMenuItem<int>(
-                      value: 3,
-                      child: Text('Social'),
-                    ),
-                  ],
+                  items: dropdownItems,
                 ),
-                SizedBox(height: 10),
 
-                // //Zona
-                // DropdownButtonFormField<String>(
-                //   value: selectedZone,
-                //   onChanged: (value) {
-                //     setState(() {
-                //       selectedZone = value!;
-                //     });
-                //   },
-                //   decoration: const InputDecoration(
-                //     labelText: 'Zona',
-                //     border: OutlineInputBorder(),
-                //   ),
-                //   items: const [
-                //     DropdownMenuItem<String>(
-                //       value: 'San Pedro Etapas',
-                //       child: Text('San Pedro Etapas'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'San Pedro Etapa Curupayty',
-                //       child: Text('San Pedro Etapa Curupayty'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Mboi Kae',
-                //       child: Text('Mboi Kae'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Centro',
-                //       child: Text('Centro'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'San Isidro',
-                //       child: Text('San Isidro'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Santa Maria',
-                //       child: Text('Santa Maria'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Chaipe',
-                //       child: Text('Chaipe'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'San Antonio',
-                //       child: Text('San Antonio'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Santo Domingo',
-                //       child: Text('Santo Domingo'),
-                //     ),
-                //     DropdownMenuItem<String>(
-                //       value: 'Ita Paso',
-                //       child: Text('Ita Paso'),
-                //     ),
-                //   ],
-                // ),
-                // SizedBox(height: 10),
+                const SizedBox(height: 10),
 
+                
                 //Zona
                 TextFormField(
                   controller: zoneController,
@@ -307,7 +235,8 @@ class _ReportState extends State<Report> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                
+                const SizedBox(height: 10),
 
                 //Descripción
                 TextFormField(
@@ -318,10 +247,10 @@ class _ReportState extends State<Report> {
                       borderRadius: BorderRadius.circular(16.0),
                     ),
                     contentPadding:
-                        EdgeInsets.symmetric(vertical: 80.0, horizontal: 14.0),
+                        const EdgeInsets.symmetric(vertical: 80.0, horizontal: 14.0),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 if (_selectedLocation.latitude != 0 && _selectedLocation.longitude != 0)
                   Container(
                     padding: const EdgeInsets.all(10.0),
@@ -341,7 +270,7 @@ class _ReportState extends State<Report> {
                       ],
                     ),
                   ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 if (_image != null)
                   Container(
                     padding: const EdgeInsets.all(10.0),
@@ -361,13 +290,13 @@ class _ReportState extends State<Report> {
                           height: 20,
                           width: 40,
                         ),
-                        Text('Imagen seleccionada'),
-                        SizedBox(height: 10),
+                        const Text('Imagen seleccionada'),
+                        const SizedBox(height: 10),
                         
                       ],
                     ),
                   ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Center(
                   child:Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -401,7 +330,7 @@ class _ReportState extends State<Report> {
                 ),
                 ),
                 
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () async {
                     // Primero, verifica si el formulario es válido
@@ -413,7 +342,7 @@ class _ReportState extends State<Report> {
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(MediaQuery.of(context).size.width, 50),
                   ),
-                  child: Text('Enviar'),
+                  child: const Text('Enviar'),
                 ),
               ],
             ),
@@ -434,8 +363,8 @@ class _ReportState extends State<Report> {
           height: 360,
           child: Column(
             children: [
-              SizedBox(height: 30),
-              Container(
+              const SizedBox(height: 30),
+              SizedBox(
                       height: 260, 
                       width: MediaQuery.of(context).size.width,
                       child: GestureDetector(
@@ -456,23 +385,24 @@ class _ReportState extends State<Report> {
                                 return MapMarker(
                                   latitude: _markerPosition.latitude,
                                   longitude: _markerPosition.longitude,
-                                  child: Icon(Icons.location_on, color: Colors.red),
+                                  child: const Icon(Icons.location_on, color: Colors.red),
                                 );
                               },
+                              initialMarkersCount: 1,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     ElevatedButton(onPressed: (){
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(100, 39, 34, 43),
+                      backgroundColor: const Color.fromARGB(100, 39, 34, 43),
                       minimumSize: Size(MediaQuery.of(context).size.width, 50),
                     ), 
-                    child: Icon(Icons.check, color: Colors.white,)
+                    child: const Icon(Icons.check, color: Colors.white,)
                     ),
                     
               
@@ -482,4 +412,5 @@ class _ReportState extends State<Report> {
       },
     );
   }
+  
 }
