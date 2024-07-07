@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-//import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
@@ -52,11 +51,15 @@ class _MapWidgetState extends State<MapWidget> {
   StreamController<List<CustomPolygon>> _polygonStreamController =
       StreamController<List<CustomPolygon>>();
 
+  // Variable para almacenar la ubicación actual del dispositivo
+  LocationData? _currentLocation;
+
   @override
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior(enableDoubleTapZooming: true);
     super.initState();
-
+    // Obtener la ubicación actual al iniciar
+    _getCurrentLocation();
     // Iniciar el flujo de datos de polígonos
     _startPolygonStream();
   }
@@ -122,60 +125,47 @@ class _MapWidgetState extends State<MapWidget> {
     }
   }
 
-  // Future<LatLng> _getCurrentLocation() async {
-  //   LocationPermission permission;
-  //   permission = await Geolocator.checkPermission();
-  //   if (permission == LocationPermission.denied) {
-  //     permission = await Geolocator.requestPermission();
-  //     if (permission == LocationPermission.denied) {
-  //       throw Exception('Location permissions are denied');
-  //     }
-  //   }
-  //   Position position = await Geolocator.getCurrentPosition();
-  //   return LatLng(position.latitude, position.longitude);
-  // }
-
-  Future<LocationData?> _currentLocation() async {
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
-
+  Future<void> _getCurrentLocation() async {
     Location location = new Location();
 
-    serviceEnabled = await location.serviceEnabled();
+    bool serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
       if (!serviceEnabled) {
-        return null;
+        return;
       }
     }
 
-    permissionGranted = await location.hasPermission();
+    PermissionStatus permissionGranted = await location.hasPermission();
     if (permissionGranted == PermissionStatus.denied) {
       permissionGranted = await location.requestPermission();
       if (permissionGranted != PermissionStatus.granted) {
-        return null;
+        return;
       }
     }
-    return await location.getLocation();
+
+    LocationData locationData = await location.getLocation();
+    setState(() {
+      _currentLocation = locationData;
+    });
+  }
+
+  void _moveToCurrentLocation() {
+    if (_currentLocation != null) {
+      _zoomPanBehavior.focalLatLng = MapLatLng(
+        _currentLocation!.latitude!,
+        _currentLocation!.longitude!,
+      );
+      _zoomPanBehavior.zoomLevel = 15;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<LocationData?>(
-        future: _currentLocation(),
-        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // Mientras se espera la ubicación actual, se puede mostrar un indicador de carga
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            // Manejar el caso de error si ocurre algún problema al obtener la ubicación
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final LocationData currentLocation = snapshot.data;
-
-            // Cuando se obtiene la ubicación actual, construir el mapa
-            return StreamBuilder<List<CustomPolygon>>(
+      body: _currentLocation == null
+          ? Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<CustomPolygon>>(
               stream: _polygonStreamController.stream,
               initialData: _polygons,
               builder: (BuildContext context,
@@ -184,8 +174,8 @@ class _MapWidgetState extends State<MapWidget> {
                   layers: [
                     MapTileLayer(
                       initialFocalLatLng: MapLatLng(
-                        currentLocation.latitude!,
-                        currentLocation.longitude!,
+                        _currentLocation!.latitude!,
+                        _currentLocation!.longitude!,
                       ),
                       initialZoomLevel: 15,
                       urlTemplate:
@@ -207,8 +197,8 @@ class _MapWidgetState extends State<MapWidget> {
                       ],
                       markerBuilder: (BuildContext context, int index) {
                         return MapMarker(
-                          latitude: currentLocation.latitude!,
-                          longitude: currentLocation.longitude!,
+                          latitude: _currentLocation!.latitude!,
+                          longitude: _currentLocation!.longitude!,
                           child: Icon(Icons.location_on, color: Colors.red),
                         );
                       },
@@ -216,30 +206,10 @@ class _MapWidgetState extends State<MapWidget> {
                   ],
                 );
               },
-            );
-          } else {
-            return Center(
-                child: Text('No se pudo obtener la ubicación actual'));
-          }
-        },
-      ),
-      floatingActionButton: Stack(
-        children: [
-          Positioned(
-            bottom: 80.0,
-            right: 2.0,
-            child: FloatingActionButton(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100.0),
-              ),
-              backgroundColor: Color.fromARGB(255, 39, 34, 43),
-              onPressed: () {
-                _currentLocation();
-              },
-              child: Icon(Icons.my_location),
             ),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _moveToCurrentLocation,
+        child: Icon(Icons.my_location),
       ),
     );
   }
@@ -250,7 +220,6 @@ class _MapWidgetState extends State<MapWidget> {
       context: context,
       builder: (BuildContext context) {
         return SizedBox(
-          //padding: EdgeInsets.all(16.0),
           height: 400,
           child: Container(
             child: Center(
