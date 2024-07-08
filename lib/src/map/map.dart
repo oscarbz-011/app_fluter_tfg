@@ -55,16 +55,10 @@ class _MapWidgetState extends State<MapWidget> {
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior(enableDoubleTapZooming: true);
     super.initState();
+    //Obtener la ubicación actual al iniciar
+    _getCurrentLocation();
     // Iniciar el flujo de datos de polígonos
     _startPolygonStream();
-
-    // Obtener la ubicación actual del dispositivo al iniciar el widget
-    _getCurrentLocation().then((location) {
-      setState(() {
-        _currentLocation = location;
-        _moveToCurrentLocation();
-      });
-    });
   }
 
   @override
