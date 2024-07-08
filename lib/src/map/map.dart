@@ -239,12 +239,7 @@ class _MapWidgetState extends State<MapWidget> {
                 borderRadius: BorderRadius.circular(100.0),
               ),
               backgroundColor: const Color.fromARGB(255, 39, 34, 43),
-              onPressed: () async {
-                _currentLocation = await _getCurrentLocation();
-                setState(() {
-                  _moveToCurrentLocation();
-                });
-              },
+              onPressed: () => _moveToCurrentLocation(),
               child: const Icon(Icons.my_location),
             ),
           ),
