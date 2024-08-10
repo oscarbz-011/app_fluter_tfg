@@ -8,7 +8,7 @@ import 'package:location/location.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MapWidget extends StatefulWidget {
-  const MapWidget({Key? key}) : super(key: key);
+  const MapWidget({Key? key});
 
   @override
   _MapWidgetState createState() => _MapWidgetState();
@@ -55,7 +55,7 @@ class _MapWidgetState extends State<MapWidget> {
   void initState() {
     _zoomPanBehavior = MapZoomPanBehavior(enableDoubleTapZooming: true);
     super.initState();
-    //Obtener la ubicación actual al iniciar
+    // Iniciar la obtención de ubicación al inicio de la aplicación
     _getCurrentLocation();
     // Iniciar el flujo de datos de polígonos
     _startPolygonStream();
@@ -70,43 +70,37 @@ class _MapWidgetState extends State<MapWidget> {
 
   // Inicia el flujo de datos de polígonos
   void _startPolygonStream() {
-    Timer.periodic(const Duration(seconds: 3), (timer) async {
-      // Actualizar polígonos cada 3 segundos
-      fetchPolygons();
+    Timer.periodic(const Duration(seconds: 1), (timer) async {
+      // Actualizar polígonos cada 1 segundo
+      await fetchPolygons();
     });
   }
 
-  void fetchPolygons() async {
-    // Obtener la URL de la API desde el archivo .env
-    String apiUrl = dotenv.get("API_URL", fallback: "");
 
-    final response = await http.get(Uri.parse('${apiUrl}api/map'));
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      List<CustomPolygon> polygons = [];
-      for (var item in data) {
-        final Map<String, dynamic> geojson = jsonDecode(item['geojson']);
-        final List<dynamic> coordinates = geojson['coordinates'][0];
-        List<MapLatLng> points = [];
-        for (var coordinate in coordinates) {
-          points.add(MapLatLng(coordinate[1], coordinate[0]));
-        }
-        if (item['status'] == 1) {
+  Future<void> fetchPolygons() async {
+    try {
+      // Obtener la URL de la API desde el archivo .env
+      String apiUrl = dotenv.get("API_URL", fallback: "");
+
+      final response = await http.get(Uri.parse('${apiUrl}api/map'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        List<CustomPolygon> polygons = [];
+        for (var item in data) {
+          final Map<String, dynamic> geojson = jsonDecode(item['geojson']);
+          final List<dynamic> coordinates = geojson['coordinates'][0];
+          List<MapLatLng> points = [];
+          for (var coordinate in coordinates) {
+            points.add(MapLatLng(coordinate[1], coordinate[0]));
+          }
           CustomPolygon polygon = CustomPolygon(
             points: points,
-            color: const Color.fromARGB(114, 33, 149, 243),
-            strokeColor: const Color.fromARGB(208, 5, 55, 95),
-            zone: item['zone'],
-            days: item['days'],
-            time: item['time'],
-            status: item['status'],
-          );
-          polygons.add(polygon);
-        } else {
-          CustomPolygon polygon = CustomPolygon(
-            points: points,
-            color: const Color.fromARGB(113, 220, 30, 30),
-            strokeColor: const Color.fromARGB(205, 116, 17, 17),
+            color: item['status'] == 1
+                ? const Color.fromARGB(114, 33, 149, 243)
+                : const Color.fromARGB(113, 220, 30, 30),
+            strokeColor: item['status'] == 1
+                ? const Color.fromARGB(208, 5, 55, 95)
+                : const Color.fromARGB(205, 116, 17, 17),
             zone: item['zone'],
             days: item['days'],
             time: item['time'],
@@ -114,36 +108,50 @@ class _MapWidgetState extends State<MapWidget> {
           );
           polygons.add(polygon);
         }
+        // Agregar polígonos al flujo de datos
+        _polygonStreamController.sink.add(polygons);
+      } else {
+        throw Exception('Failed to fetch polygons from API');
       }
-      // Agregar polígonos al flujo de datos
-      _polygonStreamController.sink.add(polygons);
-    } else {
-      throw Exception('Failed to fetch polygons from API');
+    } catch (e) {
+      print('Error fetching polygons: $e');
     }
   }
 
   Future<LocationData?> _getCurrentLocation() async {
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
+    try {
+      Location location = Location();
 
-    Location location = Location();
-
-    serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
+      bool serviceEnabled = await location.serviceEnabled();
       if (!serviceEnabled) {
-        return null;
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          throw Exception('Location service disabled');
+        }
       }
-    }
 
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return null;
+      PermissionStatus permissionGranted = await location.hasPermission();
+      if (permissionGranted == PermissionStatus.denied) {
+        permissionGranted = await location.requestPermission();
+        if (permissionGranted != PermissionStatus.granted) {
+          throw Exception('Location permission denied');
+        }
       }
+
+      _currentLocation = await location.getLocation();
+      if (_currentLocation != null) {
+        _moveToCurrentLocation();
+      }
+    } catch (e) {
+      print('Error getting current location: $e');
+      // En caso de error al obtener la ubicación, establecer una ubicación por defecto
+      _currentLocation = LocationData.fromMap({
+        "latitude": -27.332205620733156, // Ubicación de la plaza de armas
+        "longitude": -55.865701138547514,
+      });
+      _moveToCurrentLocation();
     }
-    return await location.getLocation();
+    return _currentLocation;
   }
 
   void _moveToCurrentLocation() {
@@ -161,17 +169,14 @@ class _MapWidgetState extends State<MapWidget> {
     return Scaffold(
       body: FutureBuilder<LocationData?>(
         future: _getCurrentLocation(),
-        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+        builder: (BuildContext context, AsyncSnapshot<LocationData?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Mientras se espera la ubicación actual, se puede mostrar un indicador de carga
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             // Manejar el caso de error si ocurre algún problema al obtener la ubicación
             return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            _currentLocation = snapshot.data;
-            _moveToCurrentLocation();
-
+          } else if (snapshot.hasData && _currentLocation != null) {
             // Cuando se obtiene la ubicación actual, construir el mapa
             return StreamBuilder<List<CustomPolygon>>(
               stream: _polygonStreamController.stream,
