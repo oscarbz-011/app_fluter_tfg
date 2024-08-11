@@ -24,14 +24,12 @@ class Details extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      //title: 'Material App',
-      home: Scaffold(
+    
+      return Scaffold(
         appBar: AppBar(
           title: const Text('Detalles de la noticia'),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -58,7 +56,7 @@ class Details extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
+    
   }
 }
